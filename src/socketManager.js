@@ -11,16 +11,33 @@ function initSocketManager(io) {
      */
     socket.on('join_room', (payload, callback) => {
       try {
-        const { roomCode, riderId, riderName, color, lat, lng, speed, heading } = payload || {};
+        const { roomCode, riderId, riderName, color, lat, lng, speed, heading, isCreating } = payload || {};
         if (!riderId) {
           if (callback) callback({ success: false, error: 'riderId is required' });
           return;
         }
 
+        const formattedCode = roomCode ? roomCode.toUpperCase().trim() : '';
+
+        // If rider is trying to join with a code (not creating a new convoy)
+        if (!isCreating && formattedCode) {
+          if (!roomStore.hasRoom(formattedCode)) {
+            console.log(`[Invalid Join Code] Rider '${riderName}' entered unknown code '${formattedCode}'`);
+            if (callback) {
+              callback({
+                success: false,
+                error: 'Enter a valid join code. Convoy room does not exist.',
+              });
+            }
+            return;
+          }
+        }
+
         const { roomCode: finalCode, roomState } = roomStore.joinRoom(
-          roomCode,
+          formattedCode,
           { id: riderId, name: riderName, color, lat, lng, speed, heading },
-          socket.id
+          socket.id,
+          isCreating
         );
 
         // Join socket room

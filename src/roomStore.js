@@ -22,19 +22,34 @@ class RoomStore {
   }
 
   /**
-   * Adds or registers a rider in a room
-   * @param {string} roomCode 
-   * @param {Object} rider 
-   * @param {string} socketId 
+   * Check if an active convoy room exists
+   * @param {string} roomCode
    */
+  hasRoom(roomCode) {
+    if (!roomCode) return false;
+    return this.rooms.has(roomCode.toUpperCase().trim());
+  }
+
   /**
    * Adds or registers a rider in a room (preserves membership on reconnects!)
    * @param {string} roomCode 
    * @param {Object} rider 
    * @param {string} socketId 
+   * @param {boolean} isCreating
    */
-  joinRoom(roomCode, rider, socketId) {
-    const code = (roomCode || this.generateRoomCode()).toUpperCase().trim();
+  joinRoom(roomCode, rider, socketId, isCreating = false) {
+    let code = roomCode ? roomCode.toUpperCase().trim() : '';
+
+    if (!isCreating && code) {
+      if (!this.rooms.has(code)) {
+        throw new Error(`Enter a valid join code. Convoy room '${code}' does not exist.`);
+      }
+    } else {
+      // Creating a new convoy
+      if (!code || this.rooms.has(code)) {
+        code = this.generateRoomCode();
+      }
+    }
 
     if (!this.rooms.has(code)) {
       this.rooms.set(code, {
